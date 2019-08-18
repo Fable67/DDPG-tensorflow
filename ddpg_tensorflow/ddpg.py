@@ -92,7 +92,6 @@ class DDPG(object):
             tau,
             noise_magn,
             gamma):
-
         self.sess = sess
         self.num_actions = num_actions
         self.actions_max = actions_max
