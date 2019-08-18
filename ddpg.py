@@ -1,7 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import gym
-import matplotlib.pyplot as plt
 
 
 # simple feedforward neural net
