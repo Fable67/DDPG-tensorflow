@@ -1,7 +1,11 @@
 import gym
 import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 
+from ddpg_tensorflow.ddpg import DDPG, Replay_Buffer
+
+# === Hyperparams ===
 gamma = 0.99
 n_episodes = 200
 test_interval = 25
@@ -13,12 +17,17 @@ batch_size = 100
 start_steps = 10000
 noise_magn = 0.15
 max_episode_length = 1000
-env = gym.make("Pendulum-v0")
+env = gym.make("Ant-v3")
 obs_dim = env.observation_space.shape[0]
 act_dim = env.action_space.shape[0]
 action_max = env.action_space.high[0]
-sess = tf.Session()
 
+# Soft assignment of GPU resource => https://github.com/tensorflow/tensorflow/issues/1578
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+
+# === Instantiate Agent/ER ===
 agent = DDPG(
     sess=sess,
     num_observations=obs_dim,
@@ -37,10 +46,11 @@ rb = Replay_Buffer(
     num_actions=act_dim
 )
 
+# === Training Phase ===
 num_global_steps = 0
 average_epoch_reward = np.empty(n_episodes)
 for e in range(n_episodes):
-    print(f"Epoch  {e}, Global step {num_global_steps}, Mean Reward: {average_epoch_reward[max(0, e-1)]}")
+    print(f"Epoch  {e}, Global step {num_global_steps}, Mean Reward: {average_epoch_reward[max(0, e - 1)]}")
     d = False
     steps = 0
     s = env.reset()
@@ -63,10 +73,17 @@ for e in range(n_episodes):
         batch = rb.sample()
         agent.train(batch)
 
+# === Data visualisation ===
 cummean = average_epoch_reward.cumsum() / np.arange(n_episodes)
 plt.plot(average_epoch_reward.cumsum() / np.arange(n_episodes))
-plt.show()
+plt.xlabel("episode")
+plt.ylabel("MAR")
+plt.title("Moving Average Reward Over Episodes")
+plt.axes()
+plt.grid()
+plt.savefig("./images/mar.png")
 
+# Deploy the trained agent on the env to see how well it's learnt
 d = False
 s = env.reset()
 while not d:
